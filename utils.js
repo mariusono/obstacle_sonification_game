@@ -59,4 +59,13 @@ function delay(time_ms) {
 function randomIntFromInterval(min, max) { // min and max included 
     return Math.floor(Math.random() * (max - min + 1) + min)
 }
+
+function mapPixelsToMeters(pixelToMap, meterBaseline, pixelBaseline) { 
+    
+    return (pixelToMap * meterBaseline) / pixelBaseline;
+}
+
+function mapMetersToPixels(meterToMap, meterBaseline, pixelBaseline) { 
+    return (meterToMap * pixelBaseline) / meterBaseline;
+}
 //---------------------------------------------------------------------------------------------------------------

@@ -2,8 +2,16 @@ let player;
 let squareSize = 50;
 let rotationAngle = 0;
 
-let canvasWidth = 1000;
-let canvasHeight = 400;
+let scalePixelsToMeters = 7/1000; // 5 meters to 1000 pixels
+let scaleMetersToPixels = 1 / scalePixelsToMeters; // x pixels to 1 meter
+
+let baseSpeed = 1; // m/s
+
+let canvasWidthMeters = 7;
+let canvasHeightMeters = 3;
+
+let canvasWidth = canvasWidthMeters * scaleMetersToPixels;
+let canvasHeight = canvasHeightMeters * scaleMetersToPixels;
 
 let noObjects = 3;
 let objects = [];
@@ -117,16 +125,12 @@ function setup() {
         if (objectType === 0) {
 
             objects.push(new CircleObject(x, y, size, objectColor));
-            // sonifiedObjects[i] = new droneSonification(7, 110, "triangle", 1);
-            let fileName = "glass_2.wav";
-            let urlName = "https://mariusono.github.io/Vis-a-Vis/audio_files/";
-
-            sonifiedObjects[i] = new samplerLoopSonification(fileName, urlName, 440, Tone.Time('16n').toSeconds());
+            sonifiedObjects[i] = new droneSonification(7, 110, "triangle", 1);
             sonifiedObjects[i].freeverb.connect(gainNode);
 
         } else if (objectType === 1) {
 
-            objects.push(new SquareObject(x, y, size, objectColor));
+            objects.push(new SquareObject(x, y, size, size, objectColor));
             let fileName = "glass_3.wav";
             let urlName = "https://mariusono.github.io/Vis-a-Vis/audio_files/";
             sonifiedObjects[i] = new samplerLoopSonification(fileName, urlName, 440, Tone.Time('16n').toSeconds());
@@ -144,22 +148,11 @@ function setup() {
         }
     }
 
-    walls.push(new RectangleObject(canvasWidth/2,10,canvasWidth,20,'black'));
-    walls.push(new RectangleObject(10,canvasHeight/2,20,canvasHeight,'black'));
-    walls.push(new RectangleObject(canvasWidth/2,canvasHeight-10,canvasWidth,20,'black'));
-    walls.push(new RectangleObject(canvasWidth-10,canvasHeight/2,20,canvasHeight,'black'));
+    // walls.push(new SquareObject(canvasWidth/2,10,canvasWidth,20,'black'));
+    // walls.push(new SquareObject(10,canvasHeight/2,20,canvasHeight,'black'));
+    // walls.push(new SquareObject(canvasWidth/2,canvasHeight-10,canvasWidth,20,'black'));
+    // walls.push(new SquareObject(canvasWidth-10,canvasHeight/2,20,canvasHeight,'black'));
 
-    let sonifiedObjects_keys = Object.keys(sonifiedObjects);
-    let sonifiedObjects_len = sonifiedObjects_keys.length;
-    // Display objects
-
-    let typeArray = ['sine','square','sawtooth','triangle']
-    for (const [index, wall] of walls.entries()) {
-
-        sonifiedObjects[sonifiedObjects_len + index] = new droneSonification(7, 110, typeArray[index], 1);
-        sonifiedObjects[sonifiedObjects_len + index].freeverb.connect(gainNode);
-
-    }
 
     // // Create the walls
     // for (let i = 0; i < noOfWalls; i++) {
@@ -170,6 +163,7 @@ function setup() {
 
 function draw() {
     background(220);
+    frameRate(60);
 
     if (frameCounter === 180) {
         frameCounter = 0;
@@ -198,7 +192,8 @@ function draw() {
             object.updateSize(sizeSlider.value());
         }
         else if (index === 1) {
-            object.updateSize(sizeSlider_2.value());
+            object.updateHeight(sizeSlider_2.value());
+            object.updateWidth(sizeSlider_2.value());
         }
         else if (index === 2) {
             object.updateSize(sizeSlider_3.value());
@@ -208,26 +203,14 @@ function draw() {
     // Check collisions for objects
     // for (let object of objects) {
     for (const [index, object] of objects.entries()) {
-        player.checkCollision_object(object, player, index);
+        player.checkCollision(object, player, index);
         if (flagCollision === true) {
             break;
         }
     }
-
-    for (const [index, wall] of walls.entries()) {
-        player.checkCollision_wall(wall, player, index+objects.length);
-        if (flagCollision === true) {
-            break;
-        }
-    }
-
 
     frameCounter++;
 }
-
-
-
-
 
 function mousePressed() {
     if ((mouseY < canvasHeight) && (mouseX < canvasWidth)) {
@@ -248,65 +231,6 @@ function mouseDragged() {
         // console.log(rotationAngle * 180 / Math.PI);
     }
 }
-
-
-function closestPointOnSquare(x, y, top_left_corner, top_right_corner, bottom_left_corner, bottom_right_corner) {
-    // Function to calculate the Euclidean distance between a point and a line segment
-    function distanceToLineSegment(x, y, x1, y1, x2, y2) {
-        const A = x - x1;
-        const B = y - y1;
-        const C = x2 - x1;
-        const D = y2 - y1;
-
-        const dot = A * C + B * D;
-        const len_sq = C * C + D * D;
-        let param = -1;
-
-        if (len_sq !== 0) // Avoid division by zero
-            param = dot / len_sq;
-
-        let xx, yy;
-
-        if (param < 0) {
-            xx = x1;
-            yy = y1;
-        } else if (param > 1) {
-            xx = x2;
-            yy = y2;
-        } else {
-            xx = x1 + param * C;
-            yy = y1 + param * D;
-        }
-
-        return [Math.sqrt((x - xx) ** 2 + (y - yy) ** 2),{ x: xx, y: yy }];
-    }
-
-    // Calculate the distances from the point to each side of the square
-    const distances_and_points = [
-        distanceToLineSegment(x, y, top_left_corner[0], top_left_corner[1], top_right_corner[0], top_right_corner[1]),
-        distanceToLineSegment(x, y, top_left_corner[0], top_left_corner[1], bottom_left_corner[0], bottom_left_corner[1]),
-        distanceToLineSegment(x, y, bottom_left_corner[0], bottom_left_corner[1], bottom_right_corner[0], bottom_right_corner[1]),
-        distanceToLineSegment(x, y, top_right_corner[0], top_right_corner[1], bottom_right_corner[0], bottom_right_corner[1])
-    ];
-
-    let distances = distances_and_points.map(function(subArray) {
-        return subArray[0];
-    });
-
-    let points = distances_and_points.map(function(subArray) {
-        return subArray[1];
-    });
-
-    // Find the minimum distance and its corresponding point
-    const minDistance = Math.min(...distances);
-    const minIndex = distances.indexOf(minDistance);
-
-
-    const closestPoint = points[minIndex];
-
-    return closestPoint;
-}
-
 
 class Player {
     constructor(x, y, size) {
@@ -383,7 +307,7 @@ class Player {
         this.speed = newSpeed;
     }
 
-    checkCollision_object(object, player, index) {
+    checkCollision(object, player, index) {
         let d = dist(this.x, this.y, object.x, object.y);
         if (d < 200) {
             // console.log(index);
@@ -470,80 +394,6 @@ class Player {
         }
     }
 
-
-    checkCollision_wall(wall, player, index) {
-
-        let closestPoint = closestPointOnSquare(this.x, this.y, 
-            [wall.top_left_corner.x,wall.top_left_corner.y], 
-            [wall.top_right_corner.x,wall.top_right_corner.y], 
-            [wall.bottom_left_corner.x,wall.bottom_left_corner.y], 
-            [wall.bottom_right_corner.x,wall.bottom_right_corner.y]);
-
-
-        let d = dist(this.x, this.y, closestPoint.x, closestPoint.y);
-
-
-        // if (index == 3){
-        //     console.log(closestPoint);    
-        //     console.log(d);    
-        // }
-
-        if (d < 80) {
-            // console.log(index);
-            if (sonifiedObjects[index] instanceof droneSonification) {
-                sonifiedObjects[index].setHarmonicity(d, [1, 200]);
-
-                let xObj_rel_to_player = closestPoint.x - player.x;
-                let yObj_rel_to_player = closestPoint.y - player.y;
-
-                // console.log(xObj_rel_to_player, yObj_rel_to_player);
-
-
-                let xObj_rel_to_player_rot = Math.cos(rotationAngle) * xObj_rel_to_player + Math.sin(rotationAngle) * yObj_rel_to_player;
-                let yObj_rel_to_player_rot = - Math.sin(rotationAngle) * xObj_rel_to_player + Math.cos(rotationAngle) * yObj_rel_to_player;
-
-                // console.log(xObj_rel_to_player_rot, yObj_rel_to_player_rot);
-
-                xObj_rel_to_player_rot = 30 * xObj_rel_to_player_rot / canvasWidth;
-                yObj_rel_to_player_rot = 30 * yObj_rel_to_player_rot / canvasHeight;
-
-                // console.log(xObj_rel_to_player_rot, yObj_rel_to_player_rot);
-
-                // sonifiedObjects[index].panner.setPosition(yObj_rel_to_player_rot,
-                //     xObj_rel_to_player_rot, 
-                //     linearMapping(-5,5,1,100,object.size)); // the panner is flipped compared to the screen.. MEH
-
-                sonifiedObjects[index].panner.setPosition(yObj_rel_to_player_rot,
-                    0, // this is the elevation..
-                    xObj_rel_to_player_rot); // the panner is flipped compared to the screen.. MEH
-    
-
-                sonifiedObjects[index].envelope.triggerAttack();
-            }
-            
-        } else if (d > 80) {
-            if (sonifiedObjects[index] instanceof droneSonification) {
-                sonifiedObjects[index].envelope.triggerRelease();
-            }
-        }
-
-        if (d < this.size / 2 + Math.min(...[wall.width,wall.height]) / 2) {
-            // Handle collision 
-
-            // console.log('collision');
-            player.updateSpeed(-player.speed); // bounce from it.. ? 
-
-            // console.log(player.speed);
-            flagCollision = true;
-        } else {
-            flagCollision = false;
-            // sonifiedObjects['this_is_an_id_123'].envelope.triggerRelease();
-        }
-    }
-
-
-
-
     display() {
         let halfSize = this.size / 2;
 
@@ -586,7 +436,7 @@ class CircleObject {
     }
 }
 
-class SquareObject {
+class SquareObject_old {
     constructor(x, y, size, objectColor) { // Use a different name for color variable
         this.x = x;
         this.y = y;
@@ -602,6 +452,52 @@ class SquareObject {
         fill(this.objectColor); // Use the renamed variable
         rectMode(CENTER);
         rect(this.x, this.y, this.size);
+    }
+}
+
+
+class SquareObject {
+    constructor(x, y, width, height, objectColor) { // Use a different name for color variable
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.objectColor = objectColor; // Rename variable
+
+        this.top_left_corner = { x: this.x - this.width / 2, y: this.y - this.height / 2 };
+        this.top_right_corner = { x: this.x + this.width / 2, y: this.y - this.height / 2 };
+        this.bottom_left_corner = { x: this.x - this.width / 2, y: this.y + this.height / 2 };
+        this.bottom_right_corner = { x: this.x + this.width / 2, y: this.y + this.height / 2 };
+    }
+
+    updateWidth(newWidth) {
+        this.width = newWidth;
+    }
+
+    updateHeight(newHeight) {
+        this.height = newHeight;
+    }
+
+    // updateSize(newSize) {
+    //     this.width = newSize;
+    //     this.height = newSize;
+    // }
+
+
+    updatePosition(newX, newY) {
+        this.x = newX;
+        this.y = newY;
+
+        this.top_left_corner = { x: this.x - this.width / 2, y: this.y - this.height / 2 };
+        this.top_right_corner = { x: this.x + this.width / 2, y: this.y - this.height / 2 };
+        this.bottom_left_corner = { x: this.x - this.width / 2, y: this.y + this.height / 2 };
+        this.bottom_right_corner = { x: this.x + this.width / 2, y: this.y + this.height / 2 };
+    }
+
+    display() {
+        fill(this.objectColor); // Use the renamed variable
+        rectMode(CENTER);
+        rect(this.x, this.y, this.width, this.height);
     }
 }
 
@@ -627,28 +523,4 @@ class TriangleObject {
     }
 }
 
-
-
-class RectangleObject {
-    constructor(x, y, width, height,wallColor) { // Use a different name for color variable
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height; 
-        this.wallColor = wallColor;
-
-
-        this.top_left_corner = { x: this.x - this.width / 2, y: this.y - this.height / 2 };
-        this.top_right_corner = { x: this.x + this.width / 2, y: this.y - this.height / 2 };
-        this.bottom_left_corner = { x: this.x - this.width / 2, y: this.y + this.height / 2 };
-        this.bottom_right_corner = { x: this.x + this.width / 2, y: this.y + this.height / 2 };
-    }
-
-    // Function to draw the rectangle
-    display() {
-        rectMode(CENTER);
-        fill(this.wallColor); // Use the renamed variable
-        rect(this.x, this.y, this.width, this.height);
-    }
-}
 
