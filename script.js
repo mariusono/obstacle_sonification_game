@@ -488,7 +488,7 @@ class Player {
         //     console.log(d);    
         // }
 
-        if (d < 80) {
+        if (d < 100) {
             // console.log(index);
             if (sonifiedObjects[index] instanceof droneSonification) {
                 sonifiedObjects[index].setHarmonicity(d, [1, 200]);
@@ -521,24 +521,24 @@ class Player {
                 sonifiedObjects[index].envelope.triggerAttack();
             }
             
-        } else if (d > 80) {
+        } else if (d > 100) {
             if (sonifiedObjects[index] instanceof droneSonification) {
                 sonifiedObjects[index].envelope.triggerRelease();
             }
         }
 
-        if (d < this.size / 2 + Math.min(...[wall.width,wall.height]) / 2) {
-            // Handle collision 
+        // if (d < this.size / 2 + Math.min(...[wall.width,wall.height]) / 2) {
+        //     // Handle collision 
 
-            // console.log('collision');
-            player.updateSpeed(-player.speed); // bounce from it.. ? 
+        //     // console.log('collision');
+        //     player.updateSpeed(-player.speed); // bounce from it.. ? 
 
-            // console.log(player.speed);
-            flagCollision = true;
-        } else {
-            flagCollision = false;
-            // sonifiedObjects['this_is_an_id_123'].envelope.triggerRelease();
-        }
+        //     // console.log(player.speed);
+        //     flagCollision = true;
+        // } else {
+        //     flagCollision = false;
+        //     // sonifiedObjects['this_is_an_id_123'].envelope.triggerRelease();
+        // }
     }
 
 
