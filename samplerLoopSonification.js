@@ -10,10 +10,14 @@ class samplerLoopSonification{
         this.flagOn = false;
         this.playingFlag = false; // initialize an event id.. 
 
+        this.expMappingFactor_playbackRate = 8;
+        this.expMappingFactor_roomSize = -1.5;
+
         this.valPlayback = 1;
         this.valPlaybackPrev = 1;
 
         this.distance = 1000; // some very large value to begin with.. 
+        this.panning_3d_point = [0,0,0]; // initial value
 
         this.sampler = new Tone.Sampler({
             urls: {
@@ -25,6 +29,7 @@ class samplerLoopSonification{
         this.panner = new Tone.Panner3D();
         this.panner.panningModel = 'HRTF';
         this.panner.setPosition(0, 0, 0);
+        this.panner.refDistance = 0.1; // IMPORTANT!
 
         this.sampler.volume.value = -6;
 
@@ -92,9 +97,7 @@ class samplerLoopSonification{
         if (v < mapInterval[0]) v = mapInterval[0];
         if (v > mapInterval[1]) v = mapInterval[1];
 
-        // this.valPlayback = exponentialMapping(0.5, 3.0, mapInterval[1], mapInterval[0], 8.0, v);
-        this.valPlayback = exponentialMapping(0.5, 3.0, mapInterval[1], mapInterval[0], 2.0, v); // Add slider here to control the mapping curve ! 
-        // console.log(this.valPlayback);
+        this.valPlayback = exponentialMapping(0.5, 3.0, mapInterval[1], mapInterval[0], this.expMappingFactor_playbackRate, v);
 
         if (this.valPlayback !== this.valPlaybackPrev) {
             // console.log(this.valPlayback );
@@ -108,12 +111,13 @@ class samplerLoopSonification{
         if (v < mapInterval[0]) v = mapInterval[0];
         if (v > mapInterval[1]) v = mapInterval[1];
 
-        let roomSize = exponentialMapping(0.05, 0.75, mapInterval[0], mapInterval[1], -1.5, v); // params : exponentialMapping(rangeOut_bottom, rangeOut_top, rangeIn_bottom, rangeIn_top, fac, val)
+        let roomSize = exponentialMapping(0.05, 0.75, mapInterval[0], mapInterval[1], this.expMappingFactor_roomSize, v); // params : exponentialMapping(rangeOut_bottom, rangeOut_top, rangeIn_bottom, rangeIn_top, fac, val)
         
-        console.log(roomSize);
+        // console.log(roomSize);
         this.freeverb.roomSize.value = roomSize;
         // this.freeverb.roomSize.value = 0.7;
-        this.freeverb.wet.value = 0.5;
+        // this.freeverb.wet.value = 0.5;
+        this.freeverb.wet.value = 0.0;
 
         // let roomSize = exponentialMapping(0.5, 3.0, mapInterval[0], mapInterval[1], 2.0, v); // params : exponentialMapping(rangeOut_bottom, rangeOut_top, rangeIn_bottom, rangeIn_top, fac, val)
         // this.freeverb.decay = 5.0;

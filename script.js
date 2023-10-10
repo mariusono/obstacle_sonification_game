@@ -1,18 +1,38 @@
 let player;
+let playerSpeed = 1.2; // m/s 
 let squareSize = 50;
 let rotationAngle = 0;
 
 let canvasWidth = 1000;
-let canvasHeight = 400;
+let canvasHeight = mapMetersToPixels(2.8, 6, 1000);
+let fr = 30; // frame rate
 
-let noObjects = 3;
+let noObjects = 2;
 let objects = [];
+let sizeSliders = [];
+let sizeLabels = [];
 let flagCollision = false;
 
 let walls = [];
 let noOfWalls = 4;
 
 
+// Limit distances
+let wallLimitDistance = 0.7;
+let obstacleLimitDistance = 1.5;
+
+// let objects_xArray = [width/2, 3*width/4,width/4];
+// let objects_yArray = [height/2, height/4,3*height/4];
+
+let objects_xArray = [mapMetersToPixels(0.5,6,1000) + canvasWidth/2, 
+                     -mapMetersToPixels(1.75,6,1000) + canvasWidth/2];
+let objects_yArray = [mapMetersToPixels(0.0,6,1000) + canvasHeight/2, 
+                     mapMetersToPixels(0.45,6,1000) + canvasHeight/2];
+
+
+// Exp mapping factors
+let expMappingFactor_playbackRate = 8;
+let expMappingFactor_harmonicity = 8;
 
 let gainSlider;
 
@@ -27,51 +47,54 @@ let frameCounter = 0;
 const checkTrue = (element) => element === true;
 const checkFalse = (element) => element === false;
 
+// Slider location parameters
+let pixels_under_canvas = 70;
+let slider_pixel_offset = 50;
+let slider_label_pixel_offset = 30;
+
 function setup() {
     createCanvas(canvasWidth, canvasHeight);
-    player = new Player(width / 2 - width/4, height / 2, squareSize);
+    // player = new Player(width / 2, height / 2, squareSize);
+    player = new Player(canvasWidth * Math.random(), canvasHeight * Math.random(), squareSize);
 
     // Create a slider for controlling speed
-    speedSlider = createSlider(1, 10, 3); // Min speed = 1, Max speed = 10, Initial speed = 3
-    speedSlider.position(20, height + 70); // Position the slider beneath the canvas
+    speedSlider = createSlider(1, 20, mapMetersToPixels(playerSpeed,6,1000)/fr); // Min speed = 1, Max speed = 10, Initial speed = 3
+    speedSlider.position(20, height + pixels_under_canvas + slider_pixel_offset * 0); // Position the slider beneath the canvas
     // Create a label for the slider
-    speedLabel = createP('Speed Control:');
-    speedLabel.position(20, height + 30); // Position the label above the slider
+    // speedLabel = createP('Speed Control:');
+    // speedLabel.position(20, height + pixels_under_canvas - slider_label_pixel_offset + slider_label_pixel_offset * 0); // Position the label above the slider
+
+    // Create a slider 
+    rotationSpeedSlider = createSlider(0.01, 0.15, 0.1,0.001); // Min speed = 1, Max speed = 10, Initial speed = 3
+    rotationSpeedSlider.position(20, height + pixels_under_canvas + slider_pixel_offset * 1); // Position the slider beneath the canvas
+    // Create a label for the slider
+    // rotationSpeedLabel = createP('Rotation Speed Control:');
+    // rotationSpeedLabel.position(20, height + slider_label_pixel_offset + slider_label_pixel_offset * 1); // Position the label above the slider
 
     // Create a slider for controlling gain
     gainSlider = createSlider(0, 1, 0.3, 0.001); 
-    gainSlider.position(20, height + 120); // Position the slider beneath the canvas
+    gainSlider.position(20, height + pixels_under_canvas + slider_pixel_offset * 2); // Position the slider beneath the canvas
     // Create a label for the slider
-    gainLabel = createP('Gain Control:');
-    gainLabel.position(20, height + 80); // Position the label above the slider
+    // gainLabel = createP('Gain Control:');
+    // gainLabel.position(20, height + slider_label_pixel_offset + slider_label_pixel_offset * 2); // Position the label above the slider
 
-    // Create a slider for controlling size of Object 1
-    sizeSlider = createSlider(1, 100, 30, 1); // Min size = 1, Max size = 100, Initial size = 30, Interval = 1
-    sizeSlider.position(20, height + 170); // Position the slider beneath the canvas
-    // Create a label for the slider
-    sizeLabel = createP('Size Control Obj 1:');
-    sizeLabel.position(20, height + 130); // Position the label above the slider
+    // Create a slider for controlling gain
+    expMappingFac_PR_slider = createSlider(0.01, 15, 8, 0.01); 
+    expMappingFac_PR_slider.position(20, height + pixels_under_canvas + slider_pixel_offset * 3); // Position the slider beneath the canvas
+ 
+    // Create a slider for controlling gain
+    expMappingFac_HAR_slider = createSlider(0.01, 15, 8, 0.01); 
+    expMappingFac_HAR_slider.position(20, height + pixels_under_canvas + slider_pixel_offset * 4); // Position the slider beneath the canvas
 
-    // Create a slider for controlling size of Object 2
-    sizeSlider_2 = createSlider(1, 100, 30, 1); // Min speed = 1, Max speed = 10, Initial speed = 3
-    sizeSlider_2.position(20, height + 220); // Position the slider beneath the canvas
-    // Create a label for the slider
-    sizeLabel_2 = createP('Size Control Obj 2:');
-    sizeLabel_2.position(20, height + 180); // Position the label above the slider
-
-    // Create a slider for controlling size of Object 2
-    sizeSlider_3 = createSlider(1, 100, 30, 1); // Min speed = 1, Max speed = 10, Initial speed = 3
-    sizeSlider_3.position(20, height + 270); // Position the slider beneath the canvas
-    // Create a label for the slider
-    sizeLabel_3 = createP('Size Control Obj 3:');
-    sizeLabel_3.position(20, height + 230); // Position the label above the slider
-
-    // Create a slider 
-    rotationSpeedSlider = createSlider(0.01, 0.1, 0.03,0.001); // Min speed = 1, Max speed = 10, Initial speed = 3
-    rotationSpeedSlider.position(20, height + 320); // Position the slider beneath the canvas
-    // Create a label for the slider
-    rotationSpeedLabel = createP('Rotation Speed Control:');
-    rotationSpeedLabel.position(20, height + 280); // Position the label above the slider
+        
+    for (let iObj = 0; iObj<noObjects;iObj++){
+        // Create a slider for controlling size of Object 1
+        sizeSliders.push(createSlider(1, 100, 30, 1)); // Min size = 1, Max size = 100, Initial size = 30, Interval = 1
+        sizeSliders[iObj].position(20, height + pixels_under_canvas + slider_pixel_offset * (5+iObj)); // Position the slider beneath the canvas
+        // Create a label for the slider
+        // sizeLabels.push(createP('Size Control Obj '+(iObj+1) + ':'));
+        // sizeLabels[iObj].position(20, height + pixels_under_canvas + slider_pixel_offset  * (3+iObj) - slider_label_pixel_offset + slider_label_pixel_offset); // Position the label above the slider
+    }
 
 
     //attach a click listener to a play button
@@ -83,34 +106,15 @@ function setup() {
 
 
 
-    button_1.addEventListener("click", async () => {
-        await Tone.start();
-        console.log("audio is ready");
-
-        Tone.Transport.bpm.value = 60;
-
-        // start the transport (i.e. the "clock" that drives the loop)
-        Tone.Transport.start();
-
-        // loopGlobal.start();
-    });
-
-    button_2.addEventListener("click", async () => {
-        console.log("stopping all sounds!");
-        Tone.Transport.stop(); // this just stops the master time.. 
-    });
-
-    let xArray = [width/2, 3*width/4,width/4];
-    let yArray = [height/2, height/4,3*height/4];
 
     // Create random objects (circle, square, triangle)
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < noObjects; i++) {
         // let objectType = floor(random(3)); // Randomly choose an object type
         let objectType = i; // Randomly choose an object type
         // let x = random(width);
         // let y = random(height);
-        let x = xArray[i];
-        let y = yArray[i];        
+        let x = objects_xArray[i];
+        let y = objects_yArray[i];        
         let size = 30;
         let objectColor = color(random(255), random(255), random(255));
 
@@ -118,19 +122,20 @@ function setup() {
 
             objects.push(new CircleObject(x, y, size, objectColor));
             // sonifiedObjects[i] = new droneSonification(7, 110, "triangle", 1);
-            let fileName = "glass_2.wav";
+            let fileName = "glass_3.wav";
             let urlName = "https://mariusono.github.io/Vis-a-Vis/audio_files/";
 
-            sonifiedObjects[i] = new samplerLoopSonification(fileName, urlName, 440, Tone.Time('16n').toSeconds());
+            sonifiedObjects[i] = new samplerLoopSonification(fileName, urlName, 440, Tone.Time('16n').toSeconds() * 2); // * 2 cause I will change the bpm value.. 
             sonifiedObjects[i].freeverb.connect(gainNode);
 
         } else if (objectType === 1) {
 
             objects.push(new SquareObject(x, y, size, objectColor));
-            let fileName = "glass_3.wav";
+            let fileName = "glass_1.wav";
             let urlName = "https://mariusono.github.io/Vis-a-Vis/audio_files/";
-            sonifiedObjects[i] = new samplerLoopSonification(fileName, urlName, 440, Tone.Time('16n').toSeconds());
+            sonifiedObjects[i] = new samplerLoopSonification(fileName, urlName, 440, Tone.Time('16n').toSeconds() * 2);
             sonifiedObjects[i].freeverb.connect(gainNode);
+
 
         } else {
 
@@ -159,7 +164,39 @@ function setup() {
         sonifiedObjects[sonifiedObjects_len + index] = new droneSonification(7, 110, typeArray[index], 1);
         sonifiedObjects[sonifiedObjects_len + index].freeverb.connect(gainNode);
 
+        // sonifiedObjects[sonifiedObjects_len + index].volumesArray = this.volumesArray.map(n => mag2db(n)); // db values to mag
+
     }
+
+    sonifiedObjects_keys = Object.keys(sonifiedObjects);
+    sonifiedObjects_len = sonifiedObjects_keys.length;
+
+    console.log(sonifiedObjects_keys);
+
+    button_1.addEventListener("click", async () => {
+        await Tone.start();
+        console.log("audio is ready");
+
+        Tone.Transport.bpm.value = 60;
+
+        // start the transport (i.e. the "clock" that drives the loop)
+        Tone.Transport.start();
+
+        for (let i = 0; i<sonifiedObjects_len; i++){
+            if (sonifiedObjects[sonifiedObjects_keys[i]] instanceof samplerLoopSonification){
+                // sonifiedObjects[sonifiedObjects_keys[i]].restartLoop();
+                sonifiedObjects[sonifiedObjects_keys[i]].flagOn = false;
+            }
+        }
+
+
+        // loopGlobal.start();
+    });
+
+    button_2.addEventListener("click", async () => {
+        console.log("stopping all sounds!");
+        Tone.Transport.stop(); // this just stops the master time.. 
+    });
 
     // // Create the walls
     // for (let i = 0; i < noOfWalls; i++) {
@@ -170,6 +207,8 @@ function setup() {
 
 function draw() {
     background(220);
+
+    frameRate(fr);
 
     if (frameCounter === 180) {
         frameCounter = 0;
@@ -194,15 +233,8 @@ function draw() {
 
     // Display objects
     for (const [index, object] of objects.entries()) {
-        if (index === 0) {
-            object.updateSize(sizeSlider.value());
-        }
-        else if (index === 1) {
-            object.updateSize(sizeSlider_2.value());
-        }
-        else if (index === 2) {
-            object.updateSize(sizeSlider_3.value());
-        }
+        object.updateSize(sizeSliders[index].value());
+
         object.display();
     }
     // Check collisions for objects
@@ -313,7 +345,9 @@ class Player {
         this.x = x;
         this.y = y;
         this.size = size;
-        this.speed = 3;
+        this.speed = mapMetersToPixels(playerSpeed,6,1000)/fr;
+
+        ;
     }
 
 
@@ -358,13 +392,13 @@ class Player {
             // this.x = x_preRot * Math.cos(rotationAngle) - y_preRot * Math.sin(rotationAngle);
             // this.y = x_preRot * Math.sin(rotationAngle) + y_preRot * Math.cos(rotationAngle);
         }
-        if (keyIsDown(107) || keyIsDown(187)) {
+        if (keyIsDown(107) || keyIsDown(187)) { // plus key
             squareSize += 1;
             player.updateSize(squareSize);
         }
 
         // 109 and 189 are keyCodes for "-"
-        if (keyIsDown(109) || keyIsDown(189)) {
+        if (keyIsDown(109) || keyIsDown(189)) { // minus key
             squareSize -= 1;
             player.updateSize(squareSize);
         }
@@ -385,40 +419,14 @@ class Player {
 
     checkCollision_object(object, player, index) {
         let d = dist(this.x, this.y, object.x, object.y);
-        if (d < 200) {
+        // console.log(d);
+        // console.log(mapPixelsToMeters(d,6,1000) );
+        if (mapPixelsToMeters(d,6,1000) < obstacleLimitDistance) {
             // console.log(index);
-            if (sonifiedObjects[index] instanceof droneSonification) {
-                sonifiedObjects[index].setHarmonicity(d, [1, 200]);
+            if (sonifiedObjects[index] instanceof samplerLoopSonification) {
 
-                let xObj_rel_to_player = object.x - player.x;
-                let yObj_rel_to_player = object.y - player.y;
-
-                // console.log(xObj_rel_to_player, yObj_rel_to_player);
-
-
-                let xObj_rel_to_player_rot = Math.cos(rotationAngle) * xObj_rel_to_player + Math.sin(rotationAngle) * yObj_rel_to_player;
-                let yObj_rel_to_player_rot = - Math.sin(rotationAngle) * xObj_rel_to_player + Math.cos(rotationAngle) * yObj_rel_to_player;
-
-                // console.log(xObj_rel_to_player_rot, yObj_rel_to_player_rot);
-
-                xObj_rel_to_player_rot = 30 * xObj_rel_to_player_rot / canvasWidth;
-                yObj_rel_to_player_rot = 30 * yObj_rel_to_player_rot / canvasHeight;
-
-                // console.log(xObj_rel_to_player_rot, yObj_rel_to_player_rot);
-
-                // sonifiedObjects[index].panner.setPosition(yObj_rel_to_player_rot,
-                //     xObj_rel_to_player_rot, 
-                //     linearMapping(-5,5,1,100,object.size)); // the panner is flipped compared to the screen.. MEH
-
-                sonifiedObjects[index].panner.setPosition(yObj_rel_to_player_rot,
-                    linearMapping(-5,5,1,100,object.size),
-                    xObj_rel_to_player_rot); // the panner is flipped compared to the screen.. MEH
-    
-
-                sonifiedObjects[index].envelope.triggerAttack();
-            }
-            else if (sonifiedObjects[index] instanceof samplerLoopSonification) {
-                sonifiedObjects[index].setPlaybackRate(d, [1, 200]);
+                sonifiedObjects[index].expMappingFactor_playbackRate = expMappingFac_PR_slider.value();
+                sonifiedObjects[index].setPlaybackRate(d, [mapMetersToPixels(0.01,6,1000), mapMetersToPixels(1.5,6,1000)]);
 
                 let xObj_rel_to_player = object.x - player.x;
                 let yObj_rel_to_player = object.y - player.y;
@@ -430,28 +438,53 @@ class Player {
 
                 // console.log(xObj_rel_to_player_rot, yObj_rel_to_player_rot);
 
-                xObj_rel_to_player_rot = 30 * xObj_rel_to_player_rot / canvasWidth;
-                yObj_rel_to_player_rot = 30 * yObj_rel_to_player_rot / canvasHeight;
+                // // Why 30 ?? 
+                // xObj_rel_to_player_rot = 30 * xObj_rel_to_player_rot / canvasWidth;
+                // yObj_rel_to_player_rot = 30 * yObj_rel_to_player_rot / canvasHeight;
 
+
+                // xObj_rel_to_player_rot = xObj_rel_to_player_rot / canvasWidth;
+                // yObj_rel_to_player_rot = yObj_rel_to_player_rot / canvasHeight;
+
+                sonifiedObjects[index].panning_3d_point = [mapPixelsToMeters(yObj_rel_to_player_rot, 6, 1000),
+                    mapPixelsToMeters(linearMapping(-1000,1000,1,100,object.size),6,1000),
+                    mapPixelsToMeters(-xObj_rel_to_player_rot,6,1000)];
+                    
+                sonifiedObjects[index].panning_3d_point_raw = [yObj_rel_to_player_rot,
+                    linearMapping(-5,5,1,100,object.size),
+                    -xObj_rel_to_player_rot];
+                                        
+                sonifiedObjects[index].distance = mapPixelsToMeters(d,6,1000);
+
+                // console.log(sonifiedObjects[index].panning_3d_point_raw);
+                // console.log(sonifiedObjects[index].panning_3d_point);
+                // console.log(sonifiedObjects[index].distance);
 
                 // sonifiedObjects[index].panner.setPosition(yObj_rel_to_player_rot,
-                //     xObj_rel_to_player_rot, 
-                //     linearMapping(-5,5,1,100,object.size)); // the panner is flipped compared to the screen.. MEH
-                sonifiedObjects[index].panner.setPosition(yObj_rel_to_player_rot,
-                    linearMapping(-5,5,1,100,object.size),
-                    xObj_rel_to_player_rot); // the panner is flipped compared to the screen.. MEH
+                //     linearMapping(-5,5,1,100,object.size),
+                //     xObj_rel_to_player_rot); // the panner is flipped compared to the screen.. MEH
     
+
+                sonifiedObjects[index].panner.setPosition(mapPixelsToMeters(yObj_rel_to_player_rot, 6, 1000),
+                mapPixelsToMeters(linearMapping(-5,5,1,100,object.size),6,1000),
+                mapPixelsToMeters(-xObj_rel_to_player_rot,6,1000)); // the panner is flipped compared to the screen.. MEH
+    
+
+                // if (index == 0){
+                //     console.log(yObj_rel_to_player_rot,
+                //                 linearMapping(-5,5,1,100,object.size),
+                //                 xObj_rel_to_player_rot);
+                // }    
 
 
                 if (sonifiedObjects[index].flagOn == false) {
                     sonifiedObjects[index].restartLoop(); // start the synthSonification loop
+                    console.log('here!');
                 }
             }
-        } else if (d > 200) {
-            if (sonifiedObjects[index] instanceof droneSonification) {
-                sonifiedObjects[index].envelope.triggerRelease();
-            }
-            else if (sonifiedObjects[index] instanceof samplerLoopSonification) {
+        } else if (mapPixelsToMeters(d,6,1000) > obstacleLimitDistance) {
+            if (sonifiedObjects[index] instanceof samplerLoopSonification) {
+                console.log('stopping!');
                 sonifiedObjects[index].stopLoop(); // start the synthSonification loop
             }
         }
@@ -488,10 +521,12 @@ class Player {
         //     console.log(d);    
         // }
 
-        if (d < 100) {
-            // console.log(index);
+        if (mapPixelsToMeters(d,6,1000) < wallLimitDistance) {
+        // if (mapPixelsToMeters(d,6,1000) < wallLimitDistance*(-1)) {
+                // console.log(index);
             if (sonifiedObjects[index] instanceof droneSonification) {
-                sonifiedObjects[index].setHarmonicity(d, [1, 200]);
+                sonifiedObjects[index].expMappingFactor_harmonicity = expMappingFac_HAR_slider.value();
+                sonifiedObjects[index].setHarmonicity(mapPixelsToMeters(d,6,1000), [0.2,0.7]);
 
                 let xObj_rel_to_player = closestPoint.x - player.x;
                 let yObj_rel_to_player = closestPoint.y - player.y;
@@ -504,18 +539,15 @@ class Player {
 
                 // console.log(xObj_rel_to_player_rot, yObj_rel_to_player_rot);
 
-                xObj_rel_to_player_rot = 30 * xObj_rel_to_player_rot / canvasWidth;
-                yObj_rel_to_player_rot = 30 * yObj_rel_to_player_rot / canvasHeight;
-
                 // console.log(xObj_rel_to_player_rot, yObj_rel_to_player_rot);
 
                 // sonifiedObjects[index].panner.setPosition(yObj_rel_to_player_rot,
                 //     xObj_rel_to_player_rot, 
                 //     linearMapping(-5,5,1,100,object.size)); // the panner is flipped compared to the screen.. MEH
 
-                sonifiedObjects[index].panner.setPosition(yObj_rel_to_player_rot,
+                sonifiedObjects[index].panner.setPosition(mapPixelsToMeters(yObj_rel_to_player_rot,6,1000),
                     0, // this is the elevation..
-                    xObj_rel_to_player_rot); // the panner is flipped compared to the screen.. MEH
+                    mapPixelsToMeters(-xObj_rel_to_player_rot,6,1000)); // the panner is flipped compared to the screen.. MEH
     
 
                 sonifiedObjects[index].envelope.triggerAttack();
